@@ -1,0 +1,181 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Sentiment {
+  POSITIVE
+  NEUTRAL
+  NEGATIVE
+}
+
+enum SourceType {
+  API
+  RSS
+}
+
+model User {
+  id            String           @id @default(cuid())
+  name          String?
+  email         String?          @unique
+  emailVerified DateTime?
+  image         String?
+  role          Role             @default(USER)
+  accounts      Account[]
+  sessions      Session[]
+  bookmarks     Bookmark[]
+  preferences   UserPreference[]
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  articles    Article[]
+  preferences UserPreference[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Source {
+  id               String    @id @default(cuid())
+  name             String    @unique
+  url              String
+  feedUrl          String?
+  type             SourceType @default(RSS)
+  credibilityScore Float     @default(0.75)
+  isBlocked        Boolean   @default(false)
+  articles         Article[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+}
+
+model Article {
+  id               String      @id @default(cuid())
+  title            String
+  slug             String      @unique
+  description      String?
+  aiSummary        String?
+  contentSnippet   String?
+  imageUrl         String?
+  sourceName       String
+  sourceUrl        String?
+  originalUrl      String      @unique
+  categoryId       String?
+  sourceId         String?
+  country          String?
+  language         String      @default("en")
+  publishedAt      DateTime
+  sentiment        Sentiment   @default(NEUTRAL)
+  credibilityScore Float       @default(0.7)
+  trendingScore    Float       @default(0)
+  isFeatured       Boolean     @default(false)
+  riskLabel        String?
+  keywords         String[]    @default([])
+  duplicateKey     String?
+  category         Category?   @relation(fields: [categoryId], references: [id])
+  source           Source?     @relation(fields: [sourceId], references: [id])
+  bookmarks        Bookmark[]
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  @@index([publishedAt])
+  @@index([trendingScore])
+  @@index([categoryId])
+  @@index([duplicateKey])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  articleId String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  article   Article  @relation(fields: [articleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, articleId])
+}
+
+model UserPreference {
+  id         String   @id @default(cuid())
+  userId     String
+  categoryId String
+  weight     Float    @default(1)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([userId, categoryId])
+}
+
+model TrendingTopic {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  slug      String   @unique
+  score     Float    @default(0)
+  articleIds String[] @default([])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model FetchLog {
+  id        String   @id @default(cuid())
+  status    String
+  source    String?
+  fetched   Int      @default(0)
+  stored    Int      @default(0)
+  message   String?
+  startedAt DateTime @default(now())
+  endedAt   DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([status])
+}
