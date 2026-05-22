@@ -115,7 +115,7 @@ pipeline {
             --name newsforge-smoke \
             -p 3000:3000 \
             -e AI_DISABLED=true \
-            -e RUN_MIGRATIONS=true \
+            -e RUN_DB_PUSH=true \
             -e DATABASE_URL="postgresql://newsforge:newsforge@newsforge-postgres:5432/newsforge_ci?schema=public" \
             -e NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
             -e NEXTAUTH_URL="$NEXTAUTH_URL" \
