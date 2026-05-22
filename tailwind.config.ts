@@ -10,6 +10,10 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["Arial", "Helvetica", "sans-serif"],
+        serif: ["Georgia", "Times New Roman", "serif"]
+      },
       colors: {
         ink: "#101418",
         paper: "#f7f5ef",
