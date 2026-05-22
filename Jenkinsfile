@@ -24,6 +24,7 @@ pipeline {
     stage('Check Workspace Files') {
       steps {
         sh '''
+          echo "Running repository Jenkinsfile with project-directory detection enabled."
           echo "Workspace:"
           pwd
           echo "Top-level files:"
@@ -61,6 +62,8 @@ pipeline {
     stage('Install Dependencies') {
       steps {
         sh '''
+          echo "Using PROJECT_DIR=$PROJECT_DIR"
+          test -f "$PROJECT_DIR/package.json"
           docker run --rm \
             -v "$PROJECT_DIR":/app \
             -w /app \
