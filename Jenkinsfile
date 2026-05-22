@@ -115,14 +115,12 @@ pipeline {
             --name newsforge-smoke \
             -p 3000:3000 \
             -e AI_DISABLED=true \
+            -e RUN_MIGRATIONS=true \
             -e DATABASE_URL="postgresql://newsforge:newsforge@newsforge-postgres:5432/newsforge_ci?schema=public" \
             -e NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
             -e NEXTAUTH_URL="$NEXTAUTH_URL" \
             -e CRON_SECRET="$CRON_SECRET" \
             "$IMAGE_NAME"
-
-          sleep 5
-          docker exec newsforge-smoke npx prisma migrate deploy
 
           for i in $(seq 1 30); do
             if curl -fsS http://localhost:3000/api/health; then
