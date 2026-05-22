@@ -99,7 +99,7 @@ pipeline {
             -e POSTGRES_PASSWORD=newsforge \
             -e POSTGRES_DB=newsforge_ci \
             -p 5432:5432 \
-            postgres:16-alpine
+            postgres:16
 
           sleep 15
 
