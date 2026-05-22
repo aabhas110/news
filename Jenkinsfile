@@ -92,34 +92,56 @@ pipeline {
       steps {
         sh '''
           docker rm -f newsforge-postgres newsforge-smoke || true
+          docker network rm newsforge-smoke-net || true
+          docker network create newsforge-smoke-net
 
           docker run -d \
+            --network newsforge-smoke-net \
             --name newsforge-postgres \
             -e POSTGRES_USER=newsforge \
             -e POSTGRES_PASSWORD=newsforge \
             -e POSTGRES_DB=newsforge_ci \
-            -p 5432:5432 \
             postgres:16
 
-          sleep 15
+          for i in $(seq 1 30); do
+            if docker exec newsforge-postgres pg_isready -U newsforge -d newsforge_ci; then
+              break
+            fi
+            sleep 2
+          done
 
           docker run -d \
+            --network newsforge-smoke-net \
             --name newsforge-smoke \
             -p 3000:3000 \
             -e AI_DISABLED=true \
-            -e DATABASE_URL="$DATABASE_URL" \
+            -e DATABASE_URL="postgresql://newsforge:newsforge@newsforge-postgres:5432/newsforge_ci?schema=public" \
             -e NEXTAUTH_SECRET="$NEXTAUTH_SECRET" \
             -e NEXTAUTH_URL="$NEXTAUTH_URL" \
             -e CRON_SECRET="$CRON_SECRET" \
             "$IMAGE_NAME"
 
-          sleep 20
-          curl -f http://localhost:3000/api/health
+          sleep 5
+          docker exec newsforge-smoke npx prisma migrate deploy
+
+          for i in $(seq 1 30); do
+            if curl -fsS http://localhost:3000/api/health; then
+              exit 0
+            fi
+            echo "Waiting for app health check..."
+            docker logs --tail 80 newsforge-smoke || true
+            sleep 3
+          done
+
+          echo "Smoke test failed. Final app logs:"
+          docker logs newsforge-smoke || true
+          exit 1
         '''
       }
       post {
         always {
           sh 'docker rm -f newsforge-smoke newsforge-postgres || true'
+          sh 'docker network rm newsforge-smoke-net || true'
         }
       }
     }
