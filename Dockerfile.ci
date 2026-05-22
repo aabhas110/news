@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+
+FROM node:20-alpine AS deps
+WORKDIR /app
+ENV CI=true
+ENV AI_DISABLED=true
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV DATABASE_URL=postgresql://newsforge:newsforge@localhost:5432/newsforge_ci?schema=public
+ENV NEXTAUTH_SECRET=jenkins-test-secret
+ENV NEXTAUTH_URL=http://localhost:3000
+COPY package.json package-lock.json* ./
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
+
+FROM deps AS source
+COPY . .
+
+FROM source AS prisma
+RUN npx prisma generate
+
+FROM prisma AS lint
+RUN npm run lint
+
+FROM prisma AS typecheck
+RUN npm run type-check
+
+FROM prisma AS test
+RUN npm run test
+
+FROM prisma AS build
+RUN npm run build
