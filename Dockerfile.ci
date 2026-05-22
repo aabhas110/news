@@ -6,7 +6,6 @@ ENV CI=true
 ENV AI_DISABLED=true
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV DATABASE_URL=postgresql://newsforge:newsforge@localhost:5432/newsforge_ci?schema=public
-ENV NEXTAUTH_SECRET=jenkins-test-secret
 ENV NEXTAUTH_URL=http://localhost:3000
 COPY package.json package-lock.json* ./
 RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
@@ -27,4 +26,4 @@ FROM prisma AS test
 RUN npm run test
 
 FROM prisma AS build
-RUN npm run build
+RUN NEXTAUTH_SECRET=jenkins-test-secret npm run build
