@@ -113,7 +113,6 @@ pipeline {
           docker run -d \
             --network newsforge-smoke-net \
             --name newsforge-smoke \
-            -p 3000:3000 \
             -e AI_DISABLED=true \
             -e RUN_DB_PUSH=true \
             -e DATABASE_URL="postgresql://newsforge:newsforge@newsforge-postgres:5432/newsforge_ci?schema=public" \
@@ -123,7 +122,7 @@ pipeline {
             "$IMAGE_NAME"
 
           for i in $(seq 1 30); do
-            if curl -fsS http://localhost:3000/api/health; then
+            if docker exec newsforge-smoke node -e "fetch('http://127.0.0.1:3000/api/health').then(async r=>{console.log(await r.text()); process.exit(r.ok?0:1)}).catch(err=>{console.error(err); process.exit(1)})"; then
               exit 0
             fi
             echo "Waiting for app health check..."
